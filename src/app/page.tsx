@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import Lights from "@/components/Lights";
@@ -15,15 +16,23 @@ const FLOATERS = [
   { name: "Chuo", emoji: "🧝", x: "128%", y: "62%", r: -8, d: 1.2 },
 ];
 
-const FEATURES = [
-  { icon: "🎁", title: "Sorteo con emoción", text: "Toca el regalo, sacúdelo y descubre a quién le vas a regalar." },
-  { icon: "📸", title: "Tu carta navideña", text: "Tu foto y tu lista de deseos para que no te regalen otra taza." },
-  { icon: "💸", title: "Con o sin presupuesto", text: "Pon un monto en dólares y la fecha del intercambio." },
-  { icon: "📲", title: "Todo desde el cel", text: "Comparte el link por WhatsApp y listo. Sin descargar nada." },
-];
+const SCENE_W = 360;
+const SCENE_H = 330;
 
 export default function Home() {
   const router = useRouter();
+  const sceneRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  // la escena se encoge para que todo quepa en la pantalla sin hacer scroll
+  useEffect(() => {
+    const el = sceneRef.current!;
+    const ro = new ResizeObserver(([e]) => {
+      setScale(Math.min(1, e.contentRect.height / SCENE_H, e.contentRect.width / SCENE_W));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   async function demo() {
     await seedDemo();
@@ -31,10 +40,10 @@ export default function Home() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col overflow-x-hidden">
+    <main className="mx-auto flex h-dvh w-full max-w-md flex-col overflow-hidden">
       <Lights />
 
-      <section className="flex flex-col items-center px-5 pt-4 text-center">
+      <section className="flex min-h-0 flex-1 flex-col items-center px-5 text-center">
         <motion.span
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -47,7 +56,7 @@ export default function Home() {
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: "spring", damping: 12, delay: 0.1 }}
-          className="mt-4 font-xmas text-[3.4rem] font-bold leading-[0.95]"
+          className="mt-[1.5dvh] font-xmas text-[clamp(2.6rem,7dvh,3.4rem)] font-bold leading-[0.95]"
         >
           <span className="text-shine">Mi Amigo</span>
           <br />
@@ -58,13 +67,14 @@ export default function Home() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="mt-3 max-w-xs text-balance text-snow/70"
+          className="mt-[1dvh] max-w-xs text-balance text-snow/70"
         >
           Arma el intercambio con tus panas, la familia o la oficina en un minuto. 🎄
         </motion.p>
 
         {/* escena: regalo con polaroids flotando */}
-        <div className="relative my-12 flex h-80 w-full items-center justify-center">
+        <div ref={sceneRef} className="relative flex min-h-0 w-full flex-1 items-center justify-center">
+          <div className="relative flex items-center justify-center" style={{ width: SCENE_W, height: SCENE_H, transform: `scale(${scale})` }}>
           <motion.div
             initial={{ scale: 0, rotate: -20 }}
             animate={{ scale: 1, rotate: 0 }}
@@ -87,41 +97,23 @@ export default function Home() {
               </motion.div>
             </motion.div>
           ))}
+          </div>
         </div>
 
-        <div className="flex w-full flex-col gap-3">
-          <Link href="/crear" className="btn-primary rounded-2xl py-4 text-lg font-semibold active:scale-[0.97] transition">
+        <div className="safe-bottom flex w-full shrink-0 flex-col gap-2.5">
+          <Link href="/crear" className="btn-primary rounded-2xl py-[min(1rem,2dvh)] text-lg font-semibold active:scale-[0.97] transition">
             🎁 Crear mi grupo
           </Link>
-          <Link href="/unirme" className="glass rounded-2xl py-4 text-lg font-medium active:scale-[0.97] transition">
+          <Link href="/unirme" className="glass rounded-2xl py-[min(1rem,2dvh)] text-lg font-medium active:scale-[0.97] transition">
             🔑 Tengo un código
           </Link>
-          <button onClick={demo} className="py-2 text-sm text-gold underline-offset-4 hover:underline">
+          <button onClick={demo} className="py-1 text-sm text-gold underline-offset-4 hover:underline">
             👀 Ver un grupo de ejemplo
           </button>
+          <p className="pb-1 text-xs text-snow/40">Gratis · Sin descargar nada · Se comparte por WhatsApp</p>
         </div>
       </section>
 
-      <section className="mt-10 grid grid-cols-2 gap-3 px-5">
-        {FEATURES.map((f, i) => (
-          <motion.div
-            key={f.title}
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-40px" }}
-            transition={{ delay: i * 0.08 }}
-            className="glass rounded-3xl p-4"
-          >
-            <div className="text-3xl">{f.icon}</div>
-            <h3 className="mt-2 font-semibold leading-tight">{f.title}</h3>
-            <p className="mt-1 text-sm leading-snug text-snow/60">{f.text}</p>
-          </motion.div>
-        ))}
-      </section>
-
-      <footer className="safe-bottom mt-12 px-5 pb-6 text-center text-sm text-snow/40">
-        Hecho con 🫔 y mucho cariño en Venezuela
-      </footer>
     </main>
   );
 }

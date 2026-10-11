@@ -1,34 +1,25 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { Member, Wish } from "@/lib/store";
-import { compressPhoto } from "@/lib/image";
+import { ideasFor } from "@/lib/ideas";
 import Polaroid from "./Polaroid";
 import Sheet from "./Sheet";
 
 const WISH_EMOJIS = ["🎁", "🎧", "📚", "🍫", "👕", "👟", "💄", "🎮", "🪴", "☕", "🧦", "🍷", "🎲", "✨"];
-const IDEAS: Omit<Wish, "id">[] = [
-  { title: "Chocolates", emoji: "🍫", price: 5 },
-  { title: "Una franela", emoji: "👕", price: 15 },
-  { title: "Un libro", emoji: "📚", price: 10 },
-  { title: "Medias navideñas", emoji: "🧦", price: 5 },
-  { title: "Un perfume", emoji: "✨", price: 25 },
-];
-
 type Props = {
   member: Member;
   budget: number | null;
   editable?: boolean;
   onAdd?: (w: Omit<Wish, "id">) => void;
   onRemove?: (id: string) => void;
-  onPhoto?: (photo: string) => void;
+  onEditLook?: () => void;
 };
 
 /** La "Carta al Niño Jesús": foto + lista de deseos en papel. */
-export default function WishLetter({ member, budget, editable, onAdd, onRemove, onPhoto }: Props) {
+export default function WishLetter({ member, budget, editable, onAdd, onRemove, onEditLook }: Props) {
   const [adding, setAdding] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className="relative">
@@ -50,24 +41,12 @@ export default function WishLetter({ member, budget, editable, onAdd, onRemove, 
           <button
             type="button"
             disabled={!editable}
-            onClick={() => fileRef.current?.click()}
+            onClick={onEditLook}
             className="shrink-0 transition active:scale-95"
             aria-label={editable ? "Cambiar foto" : undefined}
           >
             <Polaroid member={member} size="sm" rotate={-6} />
           </button>
-          {editable && (
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={async (e) => {
-                const f = e.target.files?.[0];
-                if (f) onPhoto?.(await compressPhoto(f));
-              }}
-            />
-          )}
           <div className="min-w-0 pt-1">
             <p className="font-hand text-lg leading-none text-pine/80">Querido Niño Jesús,</p>
             <h2 className="mt-1 font-xmas text-3xl font-bold leading-tight text-berry">
@@ -144,6 +123,7 @@ export default function WishLetter({ member, budget, editable, onAdd, onRemove, 
 
       {editable && (
         <AddWishSheet
+          budget={budget}
           open={adding}
           onClose={() => setAdding(false)}
           onAdd={(w) => {
@@ -156,7 +136,7 @@ export default function WishLetter({ member, budget, editable, onAdd, onRemove, 
   );
 }
 
-function AddWishSheet({ open, onClose, onAdd }: { open: boolean; onClose: () => void; onAdd: (w: Omit<Wish, "id">) => void }) {
+function AddWishSheet({ budget, open, onClose, onAdd }: { budget: number | null; open: boolean; onClose: () => void; onAdd: (w: Omit<Wish, "id">) => void }) {
   const [emoji, setEmoji] = useState("🎁");
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
@@ -177,7 +157,7 @@ function AddWishSheet({ open, onClose, onAdd }: { open: boolean; onClose: () => 
       <h3 className="font-xmas text-3xl font-bold">Nuevo deseo ✨</h3>
 
       <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
-        {IDEAS.map((idea) => (
+        {ideasFor(budget).map((idea) => (
           <button
             key={idea.title}
             onClick={() => submit(idea)}

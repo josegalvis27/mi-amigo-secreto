@@ -25,9 +25,13 @@ import ShareInvite from "@/components/ShareInvite";
 import WishLetter from "@/components/WishLetter";
 import GiftReveal from "@/components/GiftReveal";
 import { GiftBox, GiftLid } from "@/components/Gift";
-import MemberFields, { emptyMember, memberValid } from "@/components/MemberFields";
+import DataFields, { dataValid, emptyMember } from "@/components/MemberFields";
 import PinInput from "@/components/PinInput";
-import TopBar from "@/components/TopBar";
+import StepShell from "@/components/StepShell";
+import NameAndLook from "@/components/NameAndLook";
+import LetterStep from "@/components/LetterStep";
+import LookPicker from "@/components/LookPicker";
+import ShareCardSheet from "@/components/ShareCard";
 
 type Tab = "grupo" | "lista" | "amigo";
 const ROTATIONS = [-4, 3, -2, 5, -3, 2, -5, 4];
@@ -75,18 +79,134 @@ function NotFound({ code }: { code: string }) {
 // ---------------- entrar / unirse ----------------
 
 function AuthView({ group }: { group: Group }) {
-  const [mode, setMode] = useState<"nuevo" | "ya">("nuevo");
+  const [step, setStep] = useState(0);
+  const [login, setLogin] = useState(false);
   const [draft, setDraft] = useState(emptyMember);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function join() {
+    setBusy(true);
+    setError("");
+    try {
+      await joinGroup(group.code, draft);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (login) return <LoginView group={group} onBack={() => setLogin(false)} />;
+  if (step === 0) return <InviteView group={group} onJoin={() => setStep(1)} onLogin={() => setLogin(true)} />;
+
+  const back = () => setStep(step - 1);
+  const btn = (label: string, disabled: boolean, onClick = () => setStep(step + 1)) => (
+    <>
+      {error && <p className="mb-2 rounded-xl bg-berry/20 p-2 text-center text-sm">{error}</p>}
+      <button
+        disabled={disabled}
+        onClick={onClick}
+        className="btn-primary w-full rounded-2xl py-4 text-lg font-semibold transition disabled:opacity-40 active:scale-[0.97]"
+      >
+        {label}
+      </button>
+    </>
+  );
+
+  if (step === 1)
+    return (
+      <StepShell step={0} total={3} onBack={back} title="Ponte navideño 🎄" subtitle="Tu foto con disfraz o un avatar" footer={btn("Siguiente →", draft.name.trim().length < 2)}>
+        <NameAndLook value={draft} onChange={setDraft} />
+      </StepShell>
+    );
+
+  if (step === 2)
+    return (
+      <StepShell
+        step={1}
+        total={3}
+        onBack={back}
+        title="Arma tu carta 💌"
+        subtitle={group.budget === null ? "Pide lo que quieras" : `Ideas que caben en $${group.budget}`}
+        footer={btn(draft.wishes.length ? "Siguiente →" : "Saltar por ahora →", false)}
+      >
+        <LetterStep budget={group.budget} wishes={draft.wishes} onChange={(wishes) => setDraft({ ...draft, wishes })} />
+      </StepShell>
+    );
+
+  return (
+    <StepShell step={2} total={3} onBack={back} title="Para no perder nada 🔐" subtitle="Solo tu número y un PIN" footer={btn(busy ? "Entrando… ✨" : "🎄 ¡Me anoto!", !dataValid(draft) || busy, join)}>
+      <DataFields value={draft} onChange={setDraft} />
+    </StepShell>
+  );
+}
+
+function InviteView({ group, onJoin, onLogin }: { group: Group; onJoin: () => void; onLogin: () => void }) {
+  return (
+    <main className="mx-auto flex h-dvh w-full max-w-md flex-col">
+      <Lights />
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-5 text-center">
+        <p className="text-sm text-snow/60">Te invitaron al amigo secreto</p>
+        <h1 className="mt-1 font-xmas text-[2.6rem] font-bold leading-tight">
+          {group.emoji} {group.name}
+        </h1>
+        <div className="mt-4 flex flex-wrap justify-center gap-2 text-sm">
+          <span className="rounded-full bg-gold/15 px-3 py-1 text-gold">💵 {group.budget === null ? "Sin límite" : `Hasta $${group.budget}`}</span>
+          <span className="rounded-full bg-white/8 px-3 py-1">
+            📅 {new Date(`${group.date}T12:00:00`).toLocaleDateString("es-VE", { day: "numeric", month: "long" })}
+          </span>
+        </div>
+        <div className="relative mt-8 flex h-40 w-full items-center justify-center">
+          {group.members.slice(0, 5).map((m, i, arr) => {
+            const offset = i - (arr.length - 1) / 2;
+            return (
+              <motion.div
+                key={m.id}
+                className="absolute"
+                initial={{ opacity: 0, y: 40, rotate: 0 }}
+                animate={{ opacity: 1, y: Math.abs(offset) * 8, x: offset * 58, rotate: offset * 7 }}
+                transition={{ type: "spring", damping: 14, delay: 0.2 + i * 0.08 }}
+                style={{ zIndex: 10 - Math.abs(offset) }}
+              >
+                <Polaroid member={m} size="sm" />
+              </motion.div>
+            );
+          })}
+        </div>
+        <p className="mt-6 text-snow/70">
+          {group.assignments
+            ? "🎲 El sorteo ya se hizo"
+            : `${group.members.length} ${group.members.length === 1 ? "persona ya está" : "personas ya están"} adentro. ¡Falta tú!`}
+        </p>
+      </div>
+      <div className="safe-bottom flex flex-col gap-2 px-5">
+        {group.assignments ? (
+          <p className="glass rounded-2xl p-4 text-center text-sm">Si quieres entrar, pídele al organizador que repita el sorteo.</p>
+        ) : (
+          <button onClick={onJoin} className="btn-primary w-full rounded-2xl py-4 text-lg font-semibold active:scale-[0.97]">
+            🙋 ¡Me anoto!
+          </button>
+        )}
+        <button onClick={onLogin} className="py-3 text-sm text-gold">
+          Ya estoy en el grupo, entrar con mi PIN
+        </button>
+      </div>
+    </main>
+  );
+}
+
+function LoginView({ group, onBack }: { group: Group; onBack: () => void }) {
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function run(fn: () => Promise<void>) {
+  async function submit() {
     setBusy(true);
     setError("");
     try {
-      await fn();
+      await login(group.code, phone, pin);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -95,77 +215,40 @@ function AuthView({ group }: { group: Group }) {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col">
-      <TopBar />
-      <div className="flex flex-col items-center px-5 pt-2 text-center">
-        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", damping: 10 }} className="text-6xl">
-          {group.emoji}
-        </motion.div>
-        <p className="mt-3 text-sm text-snow/60">Te invitaron a</p>
-        <h1 className="font-xmas text-4xl font-bold leading-tight">{group.name}</h1>
-        <div className="mt-3 flex -space-x-3">
-          {group.members.slice(0, 6).map((m) => (
-            <Avatar key={m.id} member={m} className="h-10 w-10 ring-2 ring-night" />
-          ))}
-        </div>
-        <p className="mt-2 text-sm text-snow/60">
-          {group.members.length} {group.members.length === 1 ? "persona ya está" : "personas ya están"} adentro
-        </p>
-      </div>
-
-      <div className="glass relative mx-5 mt-6 grid grid-cols-2 rounded-2xl p-1">
-        {(["nuevo", "ya"] as const).map((m) => (
-          <button key={m} onClick={() => setMode(m)} className="relative z-10 py-2.5 text-sm font-medium">
-            {mode === m && (
-              <motion.span layoutId="auth-tab" className="absolute inset-0 -z-10 rounded-xl bg-white/15" transition={{ type: "spring", damping: 25, stiffness: 300 }} />
-            )}
-            {m === "nuevo" ? "Soy nuevo 🙋" : "Ya estoy en el grupo"}
+    <StepShell
+      step={0}
+      total={1}
+      onBack={onBack}
+      title="¡Qué bueno verte! 👋"
+      subtitle={`Entra a ${group.name}`}
+      footer={
+        <>
+          {error && (
+            <motion.p animate={{ x: [10, -8, 6, 0] }} className="mb-2 rounded-xl bg-berry/20 p-2 text-center text-sm">
+              {error}
+            </motion.p>
+          )}
+          <button
+            disabled={pin.length !== 4 || phone.replace(/\D/g, "").length < 10 || busy}
+            onClick={submit}
+            className="btn-primary w-full rounded-2xl py-4 text-lg font-semibold transition disabled:opacity-40 active:scale-[0.97]"
+          >
+            Entrar 🔑
           </button>
-        ))}
+        </>
+      }
+    >
+      <div className="flex flex-col gap-6">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm text-snow/70">Tu WhatsApp</span>
+          <input className="field" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0414 123 4567" inputMode="tel" />
+        </label>
+        <div className="flex flex-col gap-2">
+          <span className="text-sm text-snow/70">Tu PIN</span>
+          <PinInput value={pin} onChange={setPin} />
+        </div>
       </div>
-
-      <div className="px-5 pb-10 pt-6">
-        {group.assignments && mode === "nuevo" ? (
-          <p className="glass rounded-2xl p-4 text-center text-sm">
-            🎲 El sorteo ya se hizo. Si quieres entrar, pídele al organizador que lo repita.
-          </p>
-        ) : mode === "nuevo" ? (
-          <>
-            <MemberFields value={draft} onChange={setDraft} />
-            <button
-              disabled={!memberValid(draft) || busy}
-              onClick={() => run(() => joinGroup(group.code, draft))}
-              className="btn-primary mt-8 w-full rounded-2xl py-4 text-lg font-semibold transition disabled:opacity-40 active:scale-[0.97]"
-            >
-              {busy ? "Entrando… ✨" : "🎄 ¡Me anoto!"}
-            </button>
-          </>
-        ) : (
-          <div className="flex flex-col gap-5">
-            <label className="flex flex-col gap-1.5">
-              <span className="text-sm text-snow/70">Tu WhatsApp</span>
-              <input className="field" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0414 123 4567" inputMode="tel" />
-            </label>
-            <div className="flex flex-col gap-2">
-              <span className="text-sm text-snow/70">Tu PIN</span>
-              <PinInput value={pin} onChange={setPin} />
-            </div>
-            <button
-              disabled={pin.length !== 4 || phone.length < 10 || busy}
-              onClick={() => run(() => login(group.code, phone, pin))}
-              className="btn-primary mt-2 w-full rounded-2xl py-4 text-lg font-semibold transition disabled:opacity-40 active:scale-[0.97]"
-            >
-              Entrar 🔑
-            </button>
-          </div>
-        )}
-        {error && (
-          <motion.p initial={{ x: -10 }} animate={{ x: [10, -8, 6, 0] }} className="mt-4 rounded-xl bg-berry/20 p-3 text-center text-sm">
-            {error}
-          </motion.p>
-        )}
-      </div>
-    </main>
+    </StepShell>
   );
 }
 
@@ -262,7 +345,7 @@ function GroupTab({ group, me, goTo }: { group: Group; me: Member; goTo: (t: Tab
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-sm text-snow/60">Hola, {me.name} 👋</p>
-            <h1 className="mt-0.5 font-xmas text-4xl font-bold leading-tight">
+            <h1 className="mt-0.5 truncate font-xmas text-[2rem] font-bold leading-tight">
               {group.emoji} {group.name}
             </h1>
           </div>
@@ -270,7 +353,7 @@ function GroupTab({ group, me, goTo }: { group: Group; me: Member; goTo: (t: Tab
             Salir
           </button>
         </div>
-        <div className="mt-3 flex flex-wrap gap-2 text-sm">
+        <div className="-mx-5 mt-2 flex gap-2 overflow-x-auto whitespace-nowrap px-5 text-sm [scrollbar-width:none]">
           <span className="rounded-full bg-gold/15 px-3 py-1 text-gold">
             💵 {group.budget === null ? "Sin límite" : `Hasta $${group.budget}`}
           </span>
@@ -283,8 +366,7 @@ function GroupTab({ group, me, goTo }: { group: Group; me: Member; goTo: (t: Tab
         </div>
       </header>
 
-      <section className="mt-5 px-5">
-        <p className="mb-2 text-sm text-snow/60">Falta para el intercambio</p>
+      <section className="mt-3 px-5">
         <Countdown date={group.date} />
       </section>
 
@@ -292,7 +374,7 @@ function GroupTab({ group, me, goTo }: { group: Group; me: Member; goTo: (t: Tab
         <motion.button
           whileTap={{ scale: 0.97 }}
           onClick={() => goTo("amigo")}
-          className="mx-5 mt-5 flex items-center gap-4 overflow-hidden rounded-3xl bg-gradient-to-r from-berry to-[#b3123a] p-4 text-left shadow-[0_15px_40px_-10px_rgba(232,48,79,0.7)]"
+          className="mx-5 mt-3 flex items-center gap-4 overflow-hidden rounded-3xl bg-gradient-to-r from-berry to-[#b3123a] p-4 text-left shadow-[0_15px_40px_-10px_rgba(232,48,79,0.7)]"
         >
           <motion.span animate={{ rotate: [-8, 8, -8] }} transition={{ duration: 1.2, repeat: Infinity }} className="text-4xl">
             🎁
@@ -306,26 +388,24 @@ function GroupTab({ group, me, goTo }: { group: Group; me: Member; goTo: (t: Tab
         </motion.button>
       ) : (
         isAdmin && (
-          <div className="mx-5 mt-5 rounded-3xl border border-gold/30 bg-gold/10 p-4">
-            <p className="font-semibold">👑 Eres quien organiza</p>
-            <p className="mt-1 text-sm text-snow/70">
-              {group.members.length < 3
-                ? `Necesitas al menos 3 personas. Faltan ${3 - group.members.length}.`
-                : "Cuando estén todos, haz el sorteo. Nadie (ni tú) verá quién le tocó a quién."}
+          <div className="mx-5 mt-3 flex items-center gap-3 rounded-3xl border border-gold/30 bg-gold/10 p-3">
+            <p className="min-w-0 flex-1 text-sm leading-snug text-snow/80">
+              <b className="text-snow">👑 Organizas tú.</b>{" "}
+              {group.members.length < 3 ? `Faltan ${3 - group.members.length} para sortear.` : "Sortea cuando estén todos."}
             </p>
             <button
               disabled={group.members.length < 3}
               onClick={() => setConfirmDraw(true)}
-              className="btn-gold mt-3 w-full rounded-2xl py-3 font-semibold transition disabled:opacity-40 active:scale-[0.97]"
+              className="btn-gold shrink-0 rounded-2xl px-4 py-2.5 font-semibold transition disabled:opacity-40 active:scale-[0.97]"
             >
-              🎲 Hacer el sorteo
+              🎲 Sortear
             </button>
           </div>
         )
       )}
 
-      <section className="mt-7 px-6">
-        <div className="mb-4 flex items-center justify-between">
+      <section className="mt-5 px-6">
+        <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold">
             Los panas <span className="text-snow/50">({group.members.length})</span>
           </h2>
@@ -346,7 +426,7 @@ function GroupTab({ group, me, goTo }: { group: Group; me: Member; goTo: (t: Tab
               onClick={() => setViewing(m)}
               className="relative flex flex-col items-center"
             >
-              <Polaroid member={m} size="sm" caption={m.id === me.id ? "Tú" : m.name} className="!w-full" />
+              <Polaroid member={m} size="sm" caption={m.id === me.id ? "Tú" : m.name} width="w-full" />
               <span className="absolute -bottom-2 right-0 rounded-full bg-berry px-1.5 text-xs font-semibold">
                 {m.wishes.length} 💌
               </span>
@@ -415,33 +495,23 @@ function GroupTab({ group, me, goTo }: { group: Group; me: Member; goTo: (t: Tab
 // ---------- tab: mi carta ----------
 
 function ListTab({ group, me }: { group: Group; me: Member }) {
-  const [shared, setShared] = useState(false);
-
-  async function share() {
-    const lines = me.wishes.map((w) => `${w.emoji} ${w.title}${w.price ? ` (~$${w.price})` : ""}`).join("\n");
-    const text = `💌 Mi carta al Niño Jesús para "${group.name}":\n\n${lines}\n\n🎁 ${window.location.href}`;
-    try {
-      if (navigator.share) await navigator.share({ title: "Mi carta navideña", text });
-      else {
-        await navigator.clipboard.writeText(text);
-        setShared(true);
-        setTimeout(() => setShared(false), 1800);
-      }
-    } catch {
-      // el usuario cerró el menú de compartir
-    }
-  }
+  const [sharing, setSharing] = useState(false);
+  const [editingLook, setEditingLook] = useState(false);
 
   return (
     <div className="px-5 pt-6">
-      <div className="mb-5 flex items-end justify-between">
+      <div className="mb-5 flex items-end justify-between gap-3">
         <div>
           <h1 className="font-xmas text-4xl font-bold">Mi carta</h1>
           <p className="text-sm text-snow/60">Para que tu amigo secreto no falle 😉</p>
         </div>
-        <button onClick={share} className="glass shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium">
-          {shared ? "✅ Copiada" : "📤 Compartir"}
-        </button>
+        <motion.button
+          whileTap={{ scale: 0.92 }}
+          onClick={() => setSharing(true)}
+          className="btn-gold shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold"
+        >
+          📤 Compartir
+        </motion.button>
       </div>
       <WishLetter
         member={me}
@@ -449,9 +519,19 @@ function ListTab({ group, me }: { group: Group; me: Member }) {
         editable
         onAdd={(w) => addWish(group.code, me.id, w)}
         onRemove={(id) => removeWish(group.code, me.id, id)}
-        onPhoto={(photo) => updateMember(group.code, me.id, { photo })}
+        onEditLook={() => setEditingLook(true)}
       />
-      <p className="mt-4 text-center text-xs text-snow/40">Toca tu foto para cambiarla 📸</p>
+      <p className="mt-4 text-center text-xs text-snow/40">Toca tu foto para cambiarla o ponerte otro disfraz 🎅</p>
+      <ShareCardSheet open={sharing} onClose={() => setSharing(false)} member={me} group={group} />
+      <Sheet open={editingLook} onClose={() => setEditingLook(false)}>
+        <div className="flex flex-col gap-4 pb-6">
+          <h3 className="text-center font-xmas text-3xl font-bold">Tu look navideño</h3>
+          <LookPicker value={me} onChange={(patch) => updateMember(group.code, me.id, patch)} />
+          <button onClick={() => setEditingLook(false)} className="btn-primary rounded-2xl py-4 font-semibold active:scale-[0.97]">
+            ¡Listo! ✨
+          </button>
+        </div>
+      </Sheet>
     </div>
   );
 }

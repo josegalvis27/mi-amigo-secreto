@@ -28,9 +28,9 @@ export default function Countdown({ date }: { date: string }) {
   return (
     <div className="grid grid-cols-4 gap-2">
       {cells.map(([v, label]) => (
-        <div key={label} className="glass flex flex-col items-center rounded-2xl py-2">
-          <span className="text-2xl font-semibold tabular-nums text-gold">{String(v).padStart(2, "0")}</span>
-          <span className="text-[11px] uppercase tracking-wider text-snow/50">{label}</span>
+        <div key={label} className="glass flex flex-col items-center rounded-2xl py-1.5">
+          <span className="text-xl font-semibold tabular-nums text-gold">{String(v).padStart(2, "0")}</span>
+          <span className="text-[10px] uppercase tracking-wider text-snow/50">{label}</span>
         </div>
       ))}
     </div>

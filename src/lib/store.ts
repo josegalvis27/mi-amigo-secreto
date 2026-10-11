@@ -17,6 +17,8 @@ export type Wish = {
   note?: string;
 };
 
+export type CostumeId = "none" | "sueter" | "santa" | "duende" | "reno" | "nieve";
+
 export type Member = {
   id: string;
   name: string;
@@ -24,6 +26,7 @@ export type Member = {
   pin: string; // hash del PIN
   photo?: string; // dataURL comprimido
   emoji: string;
+  costume?: CostumeId;
   wishes: Wish[];
   joinedAt: number;
 };
@@ -122,11 +125,19 @@ export async function hashPin(pin: string) {
 
 export const normalizePhone = (p: string) => p.replace(/\D/g, "").replace(/^58/, "0");
 
-export const AVATAR_EMOJIS = ["🎅", "🤶", "🦌", "⛄", "🧝", "🎄", "🌟", "🍪", "🫔", "🎁"];
+export const AVATAR_EMOJIS = ["🎅", "🤶", "🧝", "⛄", "🦌", "😎", "🥳", "🤓", "😜"];
 
 // ---------- acciones ----------
 
-type NewMember = { name: string; phone: string; pin: string; photo?: string; emoji: string };
+type NewMember = {
+  name: string;
+  phone: string;
+  pin: string;
+  photo?: string;
+  emoji: string;
+  costume?: CostumeId;
+  wishes?: Omit<Wish, "id">[];
+};
 
 async function buildMember(m: NewMember): Promise<Member> {
   return {
@@ -136,7 +147,8 @@ async function buildMember(m: NewMember): Promise<Member> {
     pin: await hashPin(m.pin),
     photo: m.photo,
     emoji: m.emoji,
-    wishes: [],
+    costume: m.costume,
+    wishes: (m.wishes ?? []).map((w) => ({ ...w, id: uid() })),
     joinedAt: Date.now(),
   };
 }
@@ -256,14 +268,8 @@ export function markRevealed(code: string, memberId: string) {
 
 export const DEMO_CODE = "DEMO24";
 
+/** Siempre arranca el demo desde cero para que se pueda repetir el sorteo. */
 export async function seedDemo() {
-  if (read().groups[DEMO_CODE]) {
-    update((s) => {
-      s.sessions[DEMO_CODE] = s.groups[DEMO_CODE].adminId;
-      return s;
-    });
-    return;
-  }
   const pin = await hashPin("1234");
   const people: [string, string, Omit<Wish, "id">[]][] = [
     ["Tú", "🎅", [
@@ -292,12 +298,14 @@ export async function seedDemo() {
       { title: "Pulsera", emoji: "📿", price: 12 },
     ]],
   ];
+  const costumes: CostumeId[] = ["santa", "sueter", "reno", "nieve", "duende", "sueter"];
   const members: Member[] = people.map(([name, emoji, wishes], i) => ({
     id: uid(),
     name,
     phone: `041400000${i}`,
     pin,
     emoji,
+    costume: costumes[i],
     wishes: wishes.map((w) => ({ ...w, id: uid() })),
     joinedAt: Date.now() - (people.length - i) * 3600_000,
   }));
