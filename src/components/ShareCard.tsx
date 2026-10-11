@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { domToBlob } from "modern-screenshot";
-import type { Group, Member } from "@/lib/store";
+import type { GroupView as Group, PublicMember as Member } from "@/lib/types";
 import Polaroid from "./Polaroid";
 import Sheet from "./Sheet";
 

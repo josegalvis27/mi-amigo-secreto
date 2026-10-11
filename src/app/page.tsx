@@ -7,7 +7,8 @@ import { motion } from "motion/react";
 import Lights from "@/components/Lights";
 import Gift from "@/components/Gift";
 import Polaroid from "@/components/Polaroid";
-import { DEMO_CODE, seedDemo } from "@/lib/store";
+import { createDemo } from "@/lib/api";
+import MyGroups from "@/components/MyGroups";
 
 const FLOATERS = [
   { name: "Mari", emoji: "🤶", x: "-135%", y: "-62%", r: -12, d: 0 },
@@ -34,9 +35,15 @@ export default function Home() {
     return () => ro.disconnect();
   }, []);
 
+  const [demoBusy, setDemoBusy] = useState(false);
+
   async function demo() {
-    await seedDemo();
-    router.push(`/g/${DEMO_CODE}`);
+    setDemoBusy(true);
+    try {
+      router.push(`/g/${await createDemo()}`);
+    } catch {
+      setDemoBusy(false);
+    }
   }
 
   return (
@@ -101,6 +108,7 @@ export default function Home() {
         </div>
 
         <div className="safe-bottom flex w-full shrink-0 flex-col gap-2.5">
+          <MyGroups />
           <Link href="/crear" className="btn-primary rounded-2xl py-[min(1rem,2dvh)] text-lg font-semibold active:scale-[0.97] transition">
             🎁 Crear mi grupo
           </Link>
@@ -108,7 +116,7 @@ export default function Home() {
             🔑 Tengo un código
           </Link>
           <button onClick={demo} className="py-1 text-sm text-gold underline-offset-4 hover:underline">
-            👀 Ver un grupo de ejemplo
+            {demoBusy ? "Armando el ejemplo… 🎄" : "👀 Ver un grupo de ejemplo"}
           </button>
           <p className="pb-1 text-xs text-snow/40">Gratis · Sin descargar nada · Se comparte por WhatsApp</p>
         </div>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion, useAnimationControls } from "motion/react";
 import confetti from "canvas-confetti";
-import type { Member } from "@/lib/store";
+import type { PublicMember as Member } from "@/lib/types";
 import { GiftBox, GiftLid } from "./Gift";
 import Polaroid from "./Polaroid";
 

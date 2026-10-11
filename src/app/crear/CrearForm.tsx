@@ -8,7 +8,7 @@ import StepShell from "@/components/StepShell";
 import NameAndLook from "@/components/NameAndLook";
 import DataFields, { dataValid, emptyMember } from "@/components/MemberFields";
 import ShareInvite from "@/components/ShareInvite";
-import { createGroup } from "@/lib/store";
+import { createGroup } from "@/lib/api";
 
 const GROUP_EMOJIS = ["🎄", "🎁", "🫔", "⭐", "🏢", "👨‍👩‍👧", "🎉", "🏖️"];
 const BUDGETS: (number | null)[] = [5, 10, 20, 30, 50, null];

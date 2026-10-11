@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import type { Member, Wish } from "@/lib/store";
+import type { PublicMember as Member, Wish } from "@/lib/types";
 import { ideasFor } from "@/lib/ideas";
 import Polaroid from "./Polaroid";
 import Sheet from "./Sheet";

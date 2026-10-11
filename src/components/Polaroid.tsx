@@ -1,8 +1,8 @@
-import type { Member } from "@/lib/store";
+import type { PublicMember } from "@/lib/types";
 import Character from "./Character";
 
 type Props = {
-  member: Pick<Member, "name" | "photo" | "emoji" | "costume">;
+  member: Pick<PublicMember, "name" | "photo" | "emoji" | "costume">;
   size?: "sm" | "md" | "lg";
   /** reemplaza el ancho por defecto del tamaño */
   width?: string;

@@ -1,6 +1,6 @@
-import type { Wish } from "./store";
+import type { WishDraft } from "./types";
 
-export type WishDraft = Omit<Wish, "id">;
+export type { WishDraft };
 
 /** Ideas rápidas con precio de referencia en dólares. */
 export const IDEAS: WishDraft[] = [

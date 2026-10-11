@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { motion } from "motion/react";
-import { AVATAR_EMOJIS, type CostumeId } from "@/lib/store";
+import { AVATAR_EMOJIS, type CostumeId } from "@/lib/types";
 import { loadImage } from "@/lib/image";
 import Character, { COSTUMES, COSTUME_IDS } from "./Character";
 import FaceCropper from "./FaceCropper";

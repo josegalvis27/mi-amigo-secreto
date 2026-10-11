@@ -1,5 +1,5 @@
 import { useId, type ReactNode } from "react";
-import type { CostumeId } from "@/lib/store";
+import type { CostumeId } from "@/lib/types";
 
 /*
  * Personaje navideño: la cara (foto o emoji) va en un círculo y encima se

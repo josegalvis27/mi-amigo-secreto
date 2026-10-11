@@ -1,7 +1,6 @@
 "use client";
 
-import { AVATAR_EMOJIS, type CostumeId } from "@/lib/store";
-import type { WishDraft } from "@/lib/ideas";
+import { AVATAR_EMOJIS, type CostumeId } from "@/lib/types";
 import PinInput from "./PinInput";
 
 export type MemberDraft = {
@@ -11,7 +10,6 @@ export type MemberDraft = {
   photo?: string;
   emoji: string;
   costume?: CostumeId;
-  wishes: WishDraft[];
 };
 
 export const emptyMember = (): MemberDraft => ({
@@ -20,7 +18,6 @@ export const emptyMember = (): MemberDraft => ({
   pin: "",
   emoji: AVATAR_EMOJIS[Math.floor(Math.random() * AVATAR_EMOJIS.length)],
   costume: "sueter",
-  wishes: [],
 });
 
 export const dataValid = (m: MemberDraft) => m.phone.replace(/\D/g, "").length >= 10 && m.pin.length === 4;
