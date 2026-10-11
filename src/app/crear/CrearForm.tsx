@@ -19,6 +19,7 @@ export default function CrearForm() {
   const [name, setName] = useState("");
   const [emoji, setEmoji] = useState("🎄");
   const [budget, setBudget] = useState<number | null>(10);
+  const [customBudget, setCustomBudget] = useState("");
   const [date, setDate] = useState(`${new Date().getFullYear()}-12-20`);
   const [admin, setAdmin] = useState(emptyMember);
   const [code, setCode] = useState<string | null>(null);
@@ -60,7 +61,7 @@ export default function CrearForm() {
         </motion.div>
         <h1 className="mt-3 font-xmas text-4xl font-bold">¡Grupo creado!</h1>
         <p className="mt-1 text-snow/70">
-          Ahora invita a tus panas a <b className="text-snow">{name}</b>
+          Ahora invita a tus amigos a <b className="text-snow">{name}</b>
         </p>
         <ShareInvite code={code} groupName={name} />
         <Link href={`/g/${code}`} className="glass mt-3 w-full rounded-2xl py-4 font-medium">
@@ -74,7 +75,7 @@ export default function CrearForm() {
     return (
       <StepShell step={0} total={3} onBack={back} title="Arma tu grupo" subtitle="Nombre, presupuesto y fecha." footer={next("Siguiente →", name.trim().length < 2 || !date)}>
         <div className="flex flex-col gap-5">
-          <input className="field" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre: Los Panas de la Ofi" maxLength={32} />
+          <input className="field" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre: Los de la Ofi, Familia…" maxLength={32} />
           <div className="grid grid-cols-8 gap-1.5">
             {GROUP_EMOJIS.map((e) => (
               <motion.button
@@ -96,13 +97,36 @@ export default function CrearForm() {
                   whileTap={{ scale: 0.92 }}
                   key={String(b)}
                   type="button"
-                  onClick={() => setBudget(b)}
-                  className={`rounded-2xl py-2.5 font-semibold transition ${budget === b ? "btn-gold" : "glass"}`}
+                  onClick={() => {
+                    setBudget(b);
+                    setCustomBudget("");
+                  }}
+                  className={`rounded-2xl py-2.5 font-semibold transition ${budget === b && !customBudget ? "btn-gold" : "glass"}`}
                 >
                   {b === null ? "Libre" : `$${b}`}
                 </motion.button>
               ))}
             </div>
+            <label
+              className={`flex items-center gap-2 rounded-2xl border-[1.5px] px-4 transition ${
+                customBudget ? "border-gold bg-gold/15" : "border-white/14 bg-white/8"
+              }`}
+            >
+              <span className="whitespace-nowrap text-sm text-snow/70">✏️ Otro monto</span>
+              <span className="ml-auto text-lg font-semibold text-gold">$</span>
+              <input
+                value={customBudget}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/\D/g, "").slice(0, 6);
+                  setCustomBudget(v);
+                  setBudget(Number(v) > 0 ? Number(v) : 10);
+                }}
+                inputMode="numeric"
+                placeholder="15"
+                aria-label="Otro monto"
+                className="w-20 bg-transparent py-3 text-right text-lg font-semibold outline-none placeholder:text-snow/30"
+              />
+            </label>
           </div>
           <label className="flex flex-col gap-2">
             <span className="text-sm text-snow/70">📅 Día del intercambio</span>
@@ -120,7 +144,7 @@ export default function CrearForm() {
     );
 
   return (
-    <StepShell step={2} total={3} onBack={back} title="Para no perder nada 🔐" subtitle="Solo tu número y un PIN" footer={next(saving ? "Creando… ✨" : "🎉 Crear grupo", !dataValid(admin) || saving, submit)}>
+    <StepShell step={2} total={3} onBack={back} title="Tu PIN secreto 🔐" subtitle="Para entrar desde cualquier teléfono" footer={next(saving ? "Creando… ✨" : "🎉 Crear grupo", !dataValid(admin) || saving, submit)}>
       <DataFields value={admin} onChange={setAdmin} />
     </StepShell>
   );

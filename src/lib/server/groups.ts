@@ -2,7 +2,7 @@ import { randomBytes, randomInt, scrypt as scryptCb, timingSafeEqual } from "nod
 import { promisify } from "node:util";
 import { cookies } from "next/headers";
 import { ensureSchema, sql } from "./db";
-import { normalizePhone, type CostumeId, type GroupView, type NewMember, type Wish, type WishDraft } from "../types";
+import { type CostumeId, type GroupView, type NewMember, type Wish, type WishDraft } from "../types";
 
 const scrypt = promisify(scryptCb) as (pw: string, salt: string, len: number) => Promise<Buffer>;
 
@@ -59,12 +59,9 @@ function costume(v: unknown): CostumeId {
 }
 
 function member(m: NewMember) {
-  const phone = normalizePhone(String(m?.phone ?? ""));
-  if (phone.length < 10) throw new UserError("Número de WhatsApp inválido");
   if (!/^\d{4}$/.test(String(m?.pin ?? ""))) throw new UserError("El PIN debe tener 4 números");
   return {
     name: text(m.name, 24, "tu nombre"),
-    phone,
     pin: String(m.pin),
     emoji: text(m.emoji, 8, "el avatar"),
     costume: costume(m.costume),
@@ -207,10 +204,11 @@ async function insertMember(code: string, raw: NewMember) {
   const memberId = id();
   try {
     await sql()`
-      INSERT INTO members (id, group_code, name, phone, pin_hash, emoji, costume, photo)
-      VALUES (${memberId}, ${code}, ${m.name}, ${m.phone}, ${await hashPin(m.pin)}, ${m.emoji}, ${m.costume}, ${m.photo})`;
+      INSERT INTO members (id, group_code, name, pin_hash, emoji, costume, photo)
+      VALUES (${memberId}, ${code}, ${m.name}, ${await hashPin(m.pin)}, ${m.emoji}, ${m.costume}, ${m.photo})`;
   } catch (e) {
-    if (String(e).includes("duplicate key")) throw new UserError("Ese número ya está en el grupo. Entra con tu PIN.");
+    if (String(e).includes("duplicate key"))
+      throw new UserError(`Ya hay alguien llamado "${m.name}" en el grupo. Si eres tú, entra con tu PIN; si no, usa otro nombre.`);
     throw e;
   }
   return memberId;
@@ -249,11 +247,11 @@ export async function joinGroup(code: string, raw: NewMember) {
   await startSession(code, await insertMember(code, raw));
 }
 
-export async function login(code: string, phoneRaw: string, pin: string) {
+/** Se entra tocando tu foto en el grupo (memberId) + tu PIN. */
+export async function login(code: string, memberId: string, pin: string) {
   await ensureSchema();
-  const phone = normalizePhone(String(phoneRaw ?? ""));
-  const m = (await sql()`SELECT id, pin_hash, failed_logins, locked_until FROM members WHERE group_code = ${code} AND phone = ${phone}`)[0];
-  if (!m || !m.pin_hash) throw new UserError("Número o PIN incorrecto");
+  const m = (await sql()`SELECT id, pin_hash, failed_logins, locked_until FROM members WHERE group_code = ${code} AND id = ${String(memberId ?? "")}`)[0];
+  if (!m || !m.pin_hash) throw new UserError("PIN incorrecto");
   if (m.locked_until && new Date(m.locked_until) > new Date())
     throw new UserError("Muchos intentos fallidos. Espera 15 minutos o pídele ayuda al organizador.", 429);
   if (!(await checkPin(String(pin ?? ""), m.pin_hash))) {
@@ -261,7 +259,7 @@ export async function login(code: string, phoneRaw: string, pin: string) {
       UPDATE members SET failed_logins = failed_logins + 1,
         locked_until = CASE WHEN failed_logins + 1 >= ${MAX_FAILED_LOGINS} THEN now() + interval '15 minutes' ELSE NULL END
       WHERE id = ${m.id}`;
-    throw new UserError("Número o PIN incorrecto");
+    throw new UserError("PIN incorrecto");
   }
   await sql()`UPDATE members SET failed_logins = 0, locked_until = NULL WHERE id = ${m.id}`;
   await startSession(code, m.id);
@@ -336,7 +334,7 @@ const DEMO_PEOPLE: [string, string, CostumeId, WishDraft[]][] = [
     { title: "Chocolate Savoy", emoji: "🍫", price: 5 },
   ]],
   ["Luis", "🦌", "reno", [
-    { title: "Franela de la Vinotinto", emoji: "⚽", price: 25, note: "Talla M" },
+    { title: "Camiseta de fútbol", emoji: "⚽", price: 25, note: "Talla M" },
     { title: "Cargador portátil", emoji: "🔋", price: 15 },
   ]],
   ["Gabriela", "⛄", "nieve", [
@@ -344,7 +342,7 @@ const DEMO_PEOPLE: [string, string, CostumeId, WishDraft[]][] = [
     { title: "Agenda 2027", emoji: "📒", price: 10 },
   ]],
   ["Andrés", "🧝", "duende", [
-    { title: "Café de Mérida", emoji: "☕", price: 9 },
+    { title: "Café de especialidad", emoji: "☕", price: 9 },
     { title: "Medias navideñas locas", emoji: "🧦", price: 6 },
   ]],
   ["Valentina", "🌟", "sueter", [
@@ -363,15 +361,15 @@ export async function createDemo() {
   const db = sql();
   const stmts = [
     db`INSERT INTO groups (code, name, emoji, budget, date, admin_id, is_demo)
-       VALUES (${code}, 'Los Panas de la Ofi (ejemplo)', '🎄', 20, ${`${year}-12-19`}, ${adminId}, true)`,
-    db`INSERT INTO members (id, group_code, name, phone, emoji, costume, letter_done, joined_at)
-       VALUES (${adminId}, ${code}, 'Tú', ${`demo-${adminId}`}, '🎅', 'santa', true, now() - interval '6 hours')`,
+       VALUES (${code}, 'Los de la Ofi (ejemplo)', '🎄', 20, ${`${year}-12-19`}, ${adminId}, true)`,
+    db`INSERT INTO members (id, group_code, name, emoji, costume, letter_done, joined_at)
+       VALUES (${adminId}, ${code}, 'Tú', '🎅', 'santa', true, now() - interval '6 hours')`,
     db`INSERT INTO wishes (id, member_id, title, emoji, price) VALUES (${id()}, ${adminId}, 'Audífonos inalámbricos', '🎧', 20)`,
   ];
   DEMO_PEOPLE.forEach(([name, emoji, cost, wishes], i) => {
     const mid = id();
-    stmts.push(db`INSERT INTO members (id, group_code, name, phone, emoji, costume, letter_done, joined_at)
-                  VALUES (${mid}, ${code}, ${name}, ${`demo-${mid}`}, ${emoji}, ${cost}, true, now() - ${`${5 - i} hours`}::interval)`);
+    stmts.push(db`INSERT INTO members (id, group_code, name, emoji, costume, letter_done, joined_at)
+                  VALUES (${mid}, ${code}, ${name}, ${emoji}, ${cost}, true, now() - ${`${5 - i} hours`}::interval)`);
     for (const w of wishes)
       stmts.push(db`INSERT INTO wishes (id, member_id, title, emoji, price, note) VALUES (${id()}, ${mid}, ${w.title}, ${w.emoji}, ${w.price ?? null}, ${w.note ?? null})`);
   });

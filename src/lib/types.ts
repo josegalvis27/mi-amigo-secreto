@@ -45,7 +45,6 @@ export type GroupView = {
 
 export type NewMember = {
   name: string;
-  phone: string;
   pin: string;
   photo?: string; // dataURL al enviar
   emoji: string;
@@ -53,5 +52,3 @@ export type NewMember = {
 };
 
 export const AVATAR_EMOJIS = ["🎅", "🤶", "🧝", "⛄", "🦌", "😎", "🥳", "🤓", "😜"];
-
-export const normalizePhone = (p: string) => p.replace(/\D/g, "").replace(/^58/, "0");

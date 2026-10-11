@@ -13,7 +13,7 @@ const hand = Caveat({ variable: "--font-hand", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Mi Amigo Secreto 🎁",
-  description: "Arma tu amigo secreto navideño con tus panas: sorteo, lista de deseos y mucha emoción.",
+  description: "Arma tu amigo secreto navideño con tus amigos: sorteo, lista de deseos y mucha emoción.",
   appleWebApp: { capable: true, title: "Mi Amigo Secreto", statusBarStyle: "black-translucent" },
 };
 

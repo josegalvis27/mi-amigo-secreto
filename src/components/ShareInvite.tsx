@@ -6,7 +6,7 @@ import { motion } from "motion/react";
 export default function ShareInvite({ code, groupName }: { code: string; groupName: string }) {
   const [copied, setCopied] = useState(false);
   const url = typeof window === "undefined" ? "" : `${window.location.origin}/g/${code}`;
-  const text = `🎁 ¡Te invito al amigo secreto "${groupName}"! Entra aquí, pon tu foto y tu lista de deseos 👉 ${url}`;
+  const text = `🎁 ¡Te invito al amigo secreto "${groupName}"! Entra aquí, ponte tu foto navideña y arma tu carta 👉 ${url}`;
 
   async function copy() {
     await navigator.clipboard.writeText(url);

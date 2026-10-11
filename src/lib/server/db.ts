@@ -29,7 +29,7 @@ const SCHEMA = [
     id text PRIMARY KEY,
     group_code text NOT NULL REFERENCES groups(code) ON DELETE CASCADE,
     name text NOT NULL,
-    phone text NOT NULL,
+    phone text,
     pin_hash text,
     emoji text NOT NULL,
     costume text,
@@ -40,8 +40,7 @@ const SCHEMA = [
     revealed boolean NOT NULL DEFAULT false,
     failed_logins integer NOT NULL DEFAULT 0,
     locked_until timestamptz,
-    joined_at timestamptz NOT NULL DEFAULT now(),
-    UNIQUE (group_code, phone)
+    joined_at timestamptz NOT NULL DEFAULT now()
   )`,
   `CREATE TABLE IF NOT EXISTS wishes (
     id text PRIMARY KEY,
@@ -59,6 +58,9 @@ const SCHEMA = [
     created_at timestamptz NOT NULL DEFAULT now()
   )`,
   `CREATE INDEX IF NOT EXISTS members_group_idx ON members(group_code)`,
+  // v2: se entra con nombre + PIN (sin teléfono), el nombre es único dentro del grupo
+  `ALTER TABLE members ALTER COLUMN phone DROP NOT NULL`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS members_group_name_idx ON members (group_code, lower(name))`,
   `CREATE INDEX IF NOT EXISTS wishes_member_idx ON wishes(member_id)`,
 ];
 

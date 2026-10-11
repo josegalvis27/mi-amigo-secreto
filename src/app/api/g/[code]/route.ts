@@ -26,7 +26,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/g/[code]">) {
         await joinGroup(code, body.member);
         break;
       case "login":
-        await login(code, body.phone, body.pin);
+        await login(code, body.memberId, body.pin);
         break;
       case "logout":
         await logout(code);

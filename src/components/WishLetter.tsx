@@ -108,6 +108,15 @@ export default function WishLetter({ member, budget, editable, onAdd, onRemove, 
           </p>
         )}
 
+        {editable && member.wishes.length < 3 && (
+          <div className="mt-4">
+            <p className="font-hand text-xl text-pine">
+              ✨ Ideas {budget === null ? "para tu carta" : `que caben en $${budget}`} <span className="text-ink/40">(tócalas)</span>
+            </p>
+            <IdeaStickers budget={budget} exclude={member.wishes.map((w) => w.title)} onPick={(w) => onAdd?.(w)} />
+          </div>
+        )}
+
         {editable && (
           <motion.button
             whileTap={{ scale: 0.96 }}
@@ -156,17 +165,7 @@ function AddWishSheet({ budget, open, onClose, onAdd }: { budget: number | null;
     <Sheet open={open} onClose={onClose}>
       <h3 className="font-xmas text-3xl font-bold">Nuevo deseo ✨</h3>
 
-      <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
-        {ideasFor(budget).map((idea) => (
-          <button
-            key={idea.title}
-            onClick={() => submit(idea)}
-            className="glass shrink-0 rounded-full px-3 py-1.5 text-sm"
-          >
-            {idea.emoji} {idea.title}
-          </button>
-        ))}
-      </div>
+      <IdeaStickers budget={budget} exclude={[]} onPick={submit} />
 
       <form
         className="mt-4 flex flex-col gap-4 pb-4"
@@ -205,5 +204,39 @@ function AddWishSheet({ budget, open, onClose, onAdd }: { budget: number | null;
         </button>
       </form>
     </Sheet>
+  );
+}
+
+const TILTS = [-4, 3, -2, 4, -3, 2];
+
+/** Ideas como stickers de papel que se deslizan de lado; al tocar uno se agrega. */
+function IdeaStickers({ budget, exclude, onPick }: { budget: number | null; exclude: string[]; onPick: (w: Omit<Wish, "id">) => void }) {
+  const ideas = ideasFor(budget).filter((i) => !exclude.includes(i.title));
+  return (
+    <div className="-mx-5 flex gap-3 overflow-x-auto px-5 pb-3 pt-3 [scrollbar-width:none]">
+      <AnimatePresence initial={false}>
+        {ideas.map((idea, i) => (
+          <motion.button
+            key={idea.title}
+            type="button"
+            layout
+            initial={{ opacity: 0, scale: 0.6 }}
+            animate={{ opacity: 1, scale: 1, rotate: TILTS[i % TILTS.length] }}
+            exit={{ opacity: 0, scale: 0.4, y: -30 }}
+            whileTap={{ scale: 0.88, rotate: 0 }}
+            onClick={() => {
+              navigator.vibrate?.(15);
+              onPick(idea);
+            }}
+            className="relative flex w-[5.5rem] shrink-0 flex-col items-center rounded-2xl bg-white px-2 pb-2.5 pt-3 text-ink shadow-[0_8px_18px_-8px_rgba(28,26,46,0.45)] ring-1 ring-ink/5"
+          >
+            <span className="absolute -top-2 left-1/2 h-3.5 w-9 -translate-x-1/2 rounded-sm bg-gold/60" />
+            <span className="text-[2.1rem] leading-none">{idea.emoji}</span>
+            <span className="mt-1.5 line-clamp-2 min-h-[2.2em] text-center font-hand text-[1.05rem] leading-[1.1]">{idea.title}</span>
+            <span className="mt-1 rounded-full bg-pine px-2 text-[11px] font-semibold text-snow">${idea.price}</span>
+          </motion.button>
+        ))}
+      </AnimatePresence>
+    </div>
   );
 }

@@ -5,7 +5,6 @@ import PinInput from "./PinInput";
 
 export type MemberDraft = {
   name: string;
-  phone: string;
   pin: string;
   photo?: string;
   emoji: string;
@@ -14,37 +13,25 @@ export type MemberDraft = {
 
 export const emptyMember = (): MemberDraft => ({
   name: "",
-  phone: "",
   pin: "",
   emoji: AVATAR_EMOJIS[Math.floor(Math.random() * AVATAR_EMOJIS.length)],
   costume: "sueter",
 });
 
-export const dataValid = (m: MemberDraft) => m.phone.replace(/\D/g, "").length >= 10 && m.pin.length === 4;
+export const dataValid = (m: MemberDraft) => m.pin.length === 4;
 
-/** Nombre va en el paso de la foto; aquí solo WhatsApp + PIN. */
+/** El nombre va en el paso de la foto; aquí solo el PIN. */
 export default function DataFields({ value, onChange }: { value: MemberDraft; onChange: (m: MemberDraft) => void }) {
-  const set = (patch: Partial<MemberDraft>) => onChange({ ...value, ...patch });
   return (
-    <div className="flex flex-col gap-6">
-      <label className="flex flex-col gap-1.5">
-        <span className="text-sm text-snow/70">Tu WhatsApp</span>
-        <input
-          className="field"
-          value={value.phone}
-          onChange={(e) => set({ phone: e.target.value })}
-          placeholder="0414 123 4567"
-          inputMode="tel"
-          autoComplete="tel"
-        />
-      </label>
-      <div className="flex flex-col gap-2">
-        <span className="text-sm text-snow/70">Inventa un PIN de 4 números</span>
-        <PinInput value={value.pin} onChange={(pin) => set({ pin })} />
+    <div className="flex flex-col gap-6 pt-4">
+      <div className="flex flex-col gap-3">
+        <span className="text-center text-snow/80">Inventa un PIN de 4 números</span>
+        <PinInput value={value.pin} onChange={(pin) => onChange({ ...value, pin })} />
       </div>
-      <p className="glass rounded-2xl p-3 text-center text-sm text-snow/70">
-        🔐 Con tu número + PIN entras desde cualquier teléfono y no pierdes tu carta ni tu amigo secreto.
-      </p>
+      <div className="glass flex flex-col gap-2 rounded-2xl p-4 text-sm text-snow/70">
+        <p>🔐 Para entrar desde otro teléfono solo tocas tu foto en el grupo y pones este PIN.</p>
+        <p>🤫 No se lo digas a nadie, ¡así nadie ve quién te tocó!</p>
+      </div>
     </div>
   );
 }

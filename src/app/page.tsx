@@ -56,7 +56,7 @@ export default function Home() {
           animate={{ opacity: 1, y: 0 }}
           className="glass rounded-full px-4 py-1.5 text-sm"
         >
-          Navidad en Venezuela 🇻🇪
+          Navidad 🎄 Amigo secreto
         </motion.span>
 
         <motion.h1
@@ -76,7 +76,7 @@ export default function Home() {
           transition={{ delay: 0.3 }}
           className="mt-[1dvh] max-w-xs text-balance text-snow/70"
         >
-          Arma el intercambio con tus panas, la familia o la oficina en un minuto. 🎄
+          Arma el intercambio con tus amigos, la familia o la oficina en un minuto. 🎁
         </motion.p>
 
         {/* escena: regalo con polaroids flotando */}
@@ -118,7 +118,7 @@ export default function Home() {
           <button onClick={demo} className="py-1 text-sm text-gold underline-offset-4 hover:underline">
             {demoBusy ? "Armando el ejemplo… 🎄" : "👀 Ver un grupo de ejemplo"}
           </button>
-          <p className="pb-1 text-xs text-snow/40">Gratis · Sin descargar nada · Se comparte por WhatsApp</p>
+          <p className="pb-1 text-xs text-snow/40">Gratis · Sin descargar nada · Sin registro</p>
         </div>
       </section>
 

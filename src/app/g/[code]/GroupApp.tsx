@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { useGroup, type GroupAction } from "@/lib/api";
-import type { GroupView, Me, PublicMember, WishDraft } from "@/lib/types";
+import type { GroupView, Me, PublicMember } from "@/lib/types";
 import Lights from "@/components/Lights";
 import Polaroid from "@/components/Polaroid";
 import Countdown from "@/components/Countdown";
@@ -18,7 +18,6 @@ import DataFields, { dataValid, emptyMember } from "@/components/MemberFields";
 import PinInput from "@/components/PinInput";
 import StepShell from "@/components/StepShell";
 import NameAndLook from "@/components/NameAndLook";
-import LetterStep from "@/components/LetterStep";
 import LookPicker from "@/components/LookPicker";
 import ShareCardSheet from "@/components/ShareCard";
 
@@ -45,11 +44,10 @@ export default function GroupApp() {
     );
   }
   if (!view.me) return <AuthView group={view} act={act} />;
-  if (!view.me.letterDone) return <LetterOnboarding group={view} me={view.me} act={act} />;
   return <Dashboard group={view} me={view.me} act={act} />;
 }
 
-const fmtDate = (date: string) => new Date(`${date}T12:00:00`).toLocaleDateString("es-VE", { day: "numeric", month: "long" });
+const fmtDate = (date: string) => new Date(`${date}T12:00:00`).toLocaleDateString("es", { day: "numeric", month: "long" });
 
 async function attempt(fn: () => Promise<void>, setError: (e: string) => void, setBusy?: (b: boolean) => void) {
   setBusy?.(true);
@@ -106,9 +104,27 @@ function AuthView({ group, act }: { group: GroupView; act: Act }) {
     </>
   );
 
+  const taken = group.members.some((m) => m.name.trim().toLowerCase() === draft.name.trim().toLowerCase());
+
   if (step === 1)
     return (
-      <StepShell step={0} total={3} onBack={back} title="Ponte navideño 🎄" subtitle="Tu foto con disfraz o un avatar" footer={btn("Siguiente →", draft.name.trim().length < 2)}>
+      <StepShell
+        step={0}
+        total={2}
+        onBack={back}
+        title="Ponte navideño 🎄"
+        subtitle="Tu foto con disfraz o un avatar"
+        footer={
+          <>
+            {taken && (
+              <p className="mb-2 rounded-xl bg-gold/15 p-2 text-center text-sm text-gold">
+                Ya hay un “{draft.name.trim()}” en el grupo. Usa otro nombre o apodo.
+              </p>
+            )}
+            {btn("Siguiente →", draft.name.trim().length < 2 || taken)}
+          </>
+        }
+      >
         <NameAndLook value={draft} onChange={setDraft} />
       </StepShell>
     );
@@ -116,10 +132,10 @@ function AuthView({ group, act }: { group: GroupView; act: Act }) {
   return (
     <StepShell
       step={1}
-      total={3}
+      total={2}
       onBack={back}
-      title="Para no perder nada 🔐"
-      subtitle="Solo tu número y un PIN"
+      title="Tu PIN secreto 🔐"
+      subtitle="Para entrar desde cualquier teléfono"
       footer={btn(busy ? "Entrando… ✨" : "🎄 ¡Me anoto!", !dataValid(draft) || busy, () =>
         attempt(() => act({ action: "join", member: draft }), setError, setBusy),
       )}
@@ -182,77 +198,58 @@ function InviteView({ group, onJoin, onLogin }: { group: GroupView; onJoin: () =
 }
 
 function LoginView({ group, act, onBack }: { group: GroupView; act: Act; onBack: () => void }) {
-  const [phone, setPhone] = useState("");
+  const [who, setWho] = useState<PublicMember | null>(null);
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   return (
     <StepShell
-      step={0}
-      total={1}
-      onBack={onBack}
-      title="¡Qué bueno verte! 👋"
-      subtitle={`Entra a ${group.name}`}
+      step={who ? 1 : 0}
+      total={2}
+      onBack={who ? () => (setWho(null), setPin(""), setError("")) : onBack}
+      title={who ? `Hola, ${who.name} 👋` : "¿Quién eres?"}
+      subtitle={who ? "Pon tu PIN para entrar" : `Toca tu foto en ${group.name}`}
       footer={
-        <>
-          {error && (
-            <motion.p key={error} animate={{ x: [10, -8, 6, 0] }} className="mb-2 rounded-xl bg-berry/20 p-2 text-center text-sm">
-              {error}
-            </motion.p>
-          )}
-          <button
-            disabled={pin.length !== 4 || phone.replace(/\D/g, "").length < 10 || busy}
-            onClick={() => attempt(() => act({ action: "login", phone, pin }), setError, setBusy)}
-            className="btn-primary w-full rounded-2xl py-4 text-lg font-semibold transition disabled:opacity-40 active:scale-[0.97]"
-          >
-            {busy ? "Entrando…" : "Entrar 🔑"}
-          </button>
-        </>
+        who && (
+          <>
+            {error && (
+              <motion.p key={error + pin.length} animate={{ x: [10, -8, 6, 0] }} className="mb-2 rounded-xl bg-berry/20 p-2 text-center text-sm">
+                {error}
+              </motion.p>
+            )}
+            <button
+              disabled={pin.length !== 4 || busy}
+              onClick={() => attempt(() => act({ action: "login", memberId: who.id, pin }), setError, setBusy)}
+              className="btn-primary w-full rounded-2xl py-4 text-lg font-semibold transition disabled:opacity-40 active:scale-[0.97]"
+            >
+              {busy ? "Entrando…" : "Entrar 🔑"}
+            </button>
+          </>
+        )
       }
     >
-      <div className="flex flex-col gap-6">
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm text-snow/70">Tu WhatsApp</span>
-          <input className="field" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0414 123 4567" inputMode="tel" />
-        </label>
-        <div className="flex flex-col gap-2">
-          <span className="text-sm text-snow/70">Tu PIN</span>
+      {who ? (
+        <div className="flex flex-col items-center gap-8 pt-2">
+          <Polaroid member={who} size="md" rotate={-3} />
           <PinInput value={pin} onChange={setPin} />
         </div>
-      </div>
-    </StepShell>
-  );
-}
-
-/** Primer paso al entrar al grupo: armar la carta según el presupuesto. */
-function LetterOnboarding({ group, me, act }: { group: GroupView; me: Me; act: Act }) {
-  const [wishes, setWishes] = useState<WishDraft[]>([]);
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  return (
-    <StepShell
-      step={2}
-      total={3}
-      title={`¡Ya estás adentro, ${me.name}! 💌`}
-      subtitle={group.budget === null ? "Ahora arma tu carta: pide lo que quieras" : `Ahora arma tu carta con ideas que caben en $${group.budget}`}
-      footer={
-        <>
-          {error && <p className="mb-2 rounded-xl bg-berry/20 p-2 text-center text-sm">{error}</p>}
-          <button
-            disabled={busy}
-            onClick={() => {
-              navigator.vibrate?.(20);
-              attempt(() => act({ action: "addWishes", wishes, finish: true }), setError, setBusy);
-            }}
-            className="btn-primary w-full rounded-2xl py-4 text-lg font-semibold transition disabled:opacity-40 active:scale-[0.97]"
-          >
-            {busy ? "Guardando… ✨" : wishes.length ? `Listo, enviar mi carta (${wishes.length}) ✨` : "Saltar por ahora →"}
-          </button>
-        </>
-      }
-    >
-      <LetterStep budget={group.budget} wishes={wishes} onChange={setWishes} />
+      ) : (
+        <div className="grid grid-cols-3 gap-x-5 gap-y-6 px-1 pt-3">
+          {group.members.map((m, i) => (
+            <motion.button
+              key={m.id}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0, rotate: ROTATIONS[i % ROTATIONS.length] }}
+              transition={{ delay: i * 0.04 }}
+              whileTap={{ scale: 0.9, rotate: 0 }}
+              onClick={() => setWho(m)}
+            >
+              <Polaroid member={m} size="sm" width="w-full" />
+            </motion.button>
+          ))}
+        </div>
+      )}
     </StepShell>
   );
 }
@@ -405,10 +402,32 @@ function GroupTab({ group, me, act, goTo }: { group: GroupView; me: Me; act: Act
         )
       )}
 
+      {me.wishes.length === 0 && (
+        <motion.button
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={() => goTo("lista")}
+          className="mx-5 mt-3 flex items-center gap-3 rounded-3xl p-3.5 text-left text-ink shadow-[0_15px_40px_-12px_rgba(0,0,0,0.6)]"
+          style={{ background: "linear-gradient(180deg, #fffaf0, #f7eedb)" }}
+        >
+          <motion.span animate={{ rotate: [-8, 8, -8] }} transition={{ duration: 1.6, repeat: Infinity }} className="text-4xl">
+            💌
+          </motion.span>
+          <div className="min-w-0 flex-1">
+            <p className="font-xmas text-2xl font-bold leading-none text-berry">Llena tu carta</p>
+            <p className="mt-1 text-sm text-ink/70">
+              Para que tu amigo secreto sepa qué regalarte{group.budget !== null ? ` (hasta $${group.budget})` : ""}.
+            </p>
+          </div>
+          <span className="shrink-0 rounded-full bg-berry px-3 py-1.5 text-sm font-semibold text-snow">Llenar →</span>
+        </motion.button>
+      )}
+
       <section className="mt-5 px-6">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold">
-            Los panas <span className="text-snow/50">({group.members.length})</span>
+            Participantes <span className="text-snow/50">({group.members.length})</span>
           </h2>
           {!group.drawn && (
             <button onClick={() => setInviting(true)} className="text-sm font-medium text-gold">
@@ -454,7 +473,7 @@ function GroupTab({ group, me, act, goTo }: { group: GroupView; me: Me; act: Act
 
       <Sheet open={inviting} onClose={() => setInviting(false)}>
         <div className="pb-6 text-center">
-          <h3 className="font-xmas text-3xl font-bold">Invita a tus panas 🎉</h3>
+          <h3 className="font-xmas text-3xl font-bold">Invita a tus amigos 🎉</h3>
           <ShareInvite code={group.code} groupName={group.name} />
         </div>
       </Sheet>

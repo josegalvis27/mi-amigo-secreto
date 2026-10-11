@@ -6,7 +6,19 @@ import type { GroupView, NewMember, WishDraft } from "./types";
 const POLL_MS = 5000;
 
 async function post<T>(url: string, body: unknown): Promise<T> {
-  const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const send = () => fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  let res: Response;
+  try {
+    res = await send();
+  } catch {
+    // red inestable: un reintento antes de rendirse
+    await new Promise((r) => setTimeout(r, 1200));
+    try {
+      res = await send();
+    } catch {
+      throw new Error("No hay conexión 📶 Revisa tu internet e intenta otra vez.");
+    }
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error ?? "Algo salió mal, intenta otra vez");
   return data as T;
@@ -19,7 +31,7 @@ export const createDemo = () => post<{ code: string }>("/api/groups", { demo: tr
 
 export type GroupAction =
   | { action: "join"; member: NewMember }
-  | { action: "login"; phone: string; pin: string }
+  | { action: "login"; memberId: string; pin: string }
   | { action: "logout" }
   | { action: "updateMe"; patch: Partial<Pick<NewMember, "name" | "emoji" | "costume" | "photo">> }
   | { action: "addWishes"; wishes: WishDraft[]; finish?: boolean }
