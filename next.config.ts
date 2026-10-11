@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Para probar desde el celular en la misma red WiFi
+  allowedDevOrigins: ["192.168.*.*"],
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {
