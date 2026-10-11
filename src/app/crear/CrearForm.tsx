@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import StepShell from "@/components/StepShell";
 import NameAndLook from "@/components/NameAndLook";
-import LetterStep from "@/components/LetterStep";
 import DataFields, { dataValid, emptyMember } from "@/components/MemberFields";
 import ShareInvite from "@/components/ShareInvite";
 import { createGroup } from "@/lib/store";
@@ -31,7 +30,7 @@ export default function CrearForm() {
     setError("");
     try {
       setCode(await createGroup({ name, emoji, budget, date, admin }));
-      setStep(4);
+      setStep(3);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -53,7 +52,7 @@ export default function CrearForm() {
   );
   const back = () => (step === 0 ? router.push("/") : setStep(step - 1));
 
-  if (step === 4 && code) {
+  if (step === 3 && code) {
     return (
       <main className="mx-auto flex h-dvh w-full max-w-md flex-col items-center justify-center px-5 text-center">
         <motion.div initial={{ scale: 0, rotate: -180 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", damping: 10 }} className="text-7xl">
@@ -73,7 +72,7 @@ export default function CrearForm() {
 
   if (step === 0)
     return (
-      <StepShell step={0} total={4} onBack={back} title="Arma tu grupo" subtitle="Nombre, presupuesto y fecha." footer={next("Siguiente →", name.trim().length < 2 || !date)}>
+      <StepShell step={0} total={3} onBack={back} title="Arma tu grupo" subtitle="Nombre, presupuesto y fecha." footer={next("Siguiente →", name.trim().length < 2 || !date)}>
         <div className="flex flex-col gap-5">
           <input className="field" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre: Los Panas de la Ofi" maxLength={32} />
           <div className="grid grid-cols-8 gap-1.5">
@@ -115,27 +114,13 @@ export default function CrearForm() {
 
   if (step === 1)
     return (
-      <StepShell step={1} total={4} onBack={back} title="¿Y tú quién eres?" subtitle="Tú también entras en el sorteo 😉" footer={next("Siguiente →", admin.name.trim().length < 2)}>
+      <StepShell step={1} total={3} onBack={back} title="¿Y tú quién eres?" subtitle="Tú también entras en el sorteo 😉" footer={next("Siguiente →", admin.name.trim().length < 2)}>
         <NameAndLook value={admin} onChange={setAdmin} />
       </StepShell>
     );
 
-  if (step === 2)
-    return (
-      <StepShell
-        step={2}
-        total={4}
-        onBack={back}
-        title="Arma tu carta 💌"
-        subtitle={budget === null ? "Pide lo que quieras" : `Ideas que caben en $${budget}`}
-        footer={next(admin.wishes.length ? "Siguiente →" : "Saltar por ahora →", false)}
-      >
-        <LetterStep budget={budget} wishes={admin.wishes} onChange={(wishes) => setAdmin({ ...admin, wishes })} />
-      </StepShell>
-    );
-
   return (
-    <StepShell step={3} total={4} onBack={back} title="Para no perder nada 🔐" subtitle="Solo tu número y un PIN" footer={next(saving ? "Creando… ✨" : "🎉 Crear grupo", !dataValid(admin) || saving, submit)}>
+    <StepShell step={2} total={3} onBack={back} title="Para no perder nada 🔐" subtitle="Solo tu número y un PIN" footer={next(saving ? "Creando… ✨" : "🎉 Crear grupo", !dataValid(admin) || saving, submit)}>
       <DataFields value={admin} onChange={setAdmin} />
     </StepShell>
   );

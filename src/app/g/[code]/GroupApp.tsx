@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "motion/react";
 import {
   addWish,
   drawGroup,
+  finishLetter,
   joinGroup,
   login,
   logout,
@@ -30,6 +31,7 @@ import PinInput from "@/components/PinInput";
 import StepShell from "@/components/StepShell";
 import NameAndLook from "@/components/NameAndLook";
 import LetterStep from "@/components/LetterStep";
+import type { WishDraft } from "@/lib/ideas";
 import LookPicker from "@/components/LookPicker";
 import ShareCardSheet from "@/components/ShareCard";
 
@@ -121,22 +123,8 @@ function AuthView({ group }: { group: Group }) {
       </StepShell>
     );
 
-  if (step === 2)
-    return (
-      <StepShell
-        step={1}
-        total={3}
-        onBack={back}
-        title="Arma tu carta 💌"
-        subtitle={group.budget === null ? "Pide lo que quieras" : `Ideas que caben en $${group.budget}`}
-        footer={btn(draft.wishes.length ? "Siguiente →" : "Saltar por ahora →", false)}
-      >
-        <LetterStep budget={group.budget} wishes={draft.wishes} onChange={(wishes) => setDraft({ ...draft, wishes })} />
-      </StepShell>
-    );
-
   return (
-    <StepShell step={2} total={3} onBack={back} title="Para no perder nada 🔐" subtitle="Solo tu número y un PIN" footer={btn(busy ? "Entrando… ✨" : "🎄 ¡Me anoto!", !dataValid(draft) || busy, join)}>
+    <StepShell step={1} total={3} onBack={back} title="Para no perder nada 🔐" subtitle="Solo tu número y un PIN" footer={btn(busy ? "Entrando… ✨" : "🎄 ¡Me anoto!", !dataValid(draft) || busy, join)}>
       <DataFields value={draft} onChange={setDraft} />
     </StepShell>
   );
@@ -165,7 +153,7 @@ function InviteView({ group, onJoin, onLogin }: { group: Group; onJoin: () => vo
                 key={m.id}
                 className="absolute"
                 initial={{ opacity: 0, y: 40, rotate: 0 }}
-                animate={{ opacity: 1, y: Math.abs(offset) * 8, x: offset * 58, rotate: offset * 7 }}
+                animate={{ opacity: 1, y: Math.abs(offset) * 8, x: offset * (arr.length > 3 ? 58 : 80), rotate: offset * 7 }}
                 transition={{ type: "spring", damping: 14, delay: 0.2 + i * 0.08 }}
                 style={{ zIndex: 10 - Math.abs(offset) }}
               >
@@ -255,6 +243,37 @@ function LoginView({ group, onBack }: { group: Group; onBack: () => void }) {
 // ---------------- dentro del grupo ----------------
 
 function Dashboard({ group, me }: { group: Group; me: Member }) {
+  if (me.letterDone === false) return <LetterOnboarding group={group} me={me} />;
+  return <DashboardTabs group={group} me={me} />;
+}
+
+/** Primer paso al entrar al grupo: armar la carta según el presupuesto. */
+function LetterOnboarding({ group, me }: { group: Group; me: Member }) {
+  const [wishes, setWishes] = useState<WishDraft[]>([]);
+  return (
+    <StepShell
+      step={2}
+      total={3}
+      title={`¡Ya estás adentro, ${me.name}! 💌`}
+      subtitle={group.budget === null ? "Ahora arma tu carta: pide lo que quieras" : `Ahora arma tu carta con ideas que caben en $${group.budget}`}
+      footer={
+        <button
+          onClick={() => {
+            navigator.vibrate?.(20);
+            finishLetter(group.code, me.id, wishes);
+          }}
+          className="btn-primary w-full rounded-2xl py-4 text-lg font-semibold active:scale-[0.97]"
+        >
+          {wishes.length ? `Listo, enviar mi carta (${wishes.length}) ✨` : "Saltar por ahora →"}
+        </button>
+      }
+    >
+      <LetterStep budget={group.budget} wishes={wishes} onChange={setWishes} />
+    </StepShell>
+  );
+}
+
+function DashboardTabs({ group, me }: { group: Group; me: Member }) {
   const [tab, setTab] = useState<Tab>(group.assignments && !group.revealed[me.id] ? "amigo" : "grupo");
 
   return (

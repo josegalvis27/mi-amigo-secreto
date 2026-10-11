@@ -28,6 +28,8 @@ export type Member = {
   emoji: string;
   costume?: CostumeId;
   wishes: Wish[];
+  /** false justo después de unirse: se le muestra el paso de armar la carta */
+  letterDone?: boolean;
   joinedAt: number;
 };
 
@@ -149,6 +151,7 @@ async function buildMember(m: NewMember): Promise<Member> {
     emoji: m.emoji,
     costume: m.costume,
     wishes: (m.wishes ?? []).map((w) => ({ ...w, id: uid() })),
+    letterDone: false,
     joinedAt: Date.now(),
   };
 }
@@ -228,6 +231,17 @@ export function updateMember(code: string, memberId: string, patch: Partial<Memb
 export function addWish(code: string, memberId: string, wish: Omit<Wish, "id">) {
   update((s) => {
     s.groups[code].members.find((x) => x.id === memberId)?.wishes.push({ ...wish, id: uid() });
+    return s;
+  });
+}
+
+export function finishLetter(code: string, memberId: string, wishes: Omit<Wish, "id">[]) {
+  update((s) => {
+    const m = s.groups[code].members.find((x) => x.id === memberId);
+    if (m) {
+      m.wishes.push(...wishes.map((w) => ({ ...w, id: uid() })));
+      m.letterDone = true;
+    }
     return s;
   });
 }
