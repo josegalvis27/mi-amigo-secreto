@@ -4,23 +4,25 @@ import { useRef, useState } from "react";
 import { motion } from "motion/react";
 import { AVATAR_EMOJIS, type CostumeId } from "@/lib/types";
 import { loadImage } from "@/lib/image";
-import Character, { COSTUMES, COSTUME_IDS } from "./Character";
-import FaceCropper from "./FaceCropper";
+import CostumeChips from "./CostumeChips";
+import PhotoStudio from "./PhotoStudio";
 import Polaroid from "./Polaroid";
+import Sheet from "./Sheet";
 
 export type Look = { name: string; photo?: string; emoji: string; costume?: CostumeId };
 
 /** Foto (o avatar emoji) + disfraz navideño. */
 export default function LookPicker({ value, onChange }: { value: Look; onChange: (patch: Partial<Look>) => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
-  const [img, setImg] = useState<HTMLImageElement | null>(null);
+  const [choosing, setChoosing] = useState(false);
+  const [studio, setStudio] = useState<"camera" | HTMLImageElement | null>(null);
   const costume = value.costume ?? "none";
 
   return (
     <div className="flex flex-col items-center gap-4">
       <motion.button
         type="button"
-        onClick={() => fileRef.current?.click()}
+        onClick={() => setChoosing(true)}
         whileTap={{ scale: 0.95 }}
         animate={{ rotate: [-3, -1, -3] }}
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
@@ -38,40 +40,13 @@ export default function LookPicker({ value, onChange }: { value: Look; onChange:
         onChange={async (e) => {
           const f = e.target.files?.[0];
           e.target.value = "";
-          if (f) setImg(await loadImage(f));
+          if (f) setStudio(await loadImage(f));
         }}
       />
 
       <div className="w-full">
         <p className="mb-2 text-center text-sm text-snow/60">Escoge tu disfraz</p>
-        <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none]">
-          {COSTUME_IDS.map((id) => {
-            const active = costume === id;
-            return (
-              <motion.button
-                key={id}
-                type="button"
-                whileTap={{ scale: 0.9 }}
-                onClick={() => onChange({ costume: id })}
-                className={`flex shrink-0 flex-col items-center gap-1 rounded-2xl p-1.5 transition ${active ? "bg-gold/20 ring-2 ring-gold" : "bg-white/5"}`}
-              >
-                <span className="block h-14 w-14 overflow-hidden rounded-xl">
-                  {id === "none" ? (
-                    value.photo ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={value.photo} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <span className="flex h-full w-full items-center justify-center bg-pine text-3xl">{value.emoji}</span>
-                    )
-                  ) : (
-                    <Character costume={id} photo={value.photo} emoji={value.emoji} className="h-full w-full" />
-                  )}
-                </span>
-                <span className="text-[11px]">{id === "none" ? "Normal" : COSTUMES[id].label}</span>
-              </motion.button>
-            );
-          })}
-        </div>
+        <CostumeChips costume={costume} photo={value.photo} emoji={value.emoji} onPick={(c) => onChange({ costume: c })} />
       </div>
 
       {!value.photo && (
@@ -97,15 +72,54 @@ export default function LookPicker({ value, onChange }: { value: Look; onChange:
         </button>
       )}
 
-      <FaceCropper
-        key={img?.src ?? "none"}
-        image={img}
-        onClose={() => setImg(null)}
-        onDone={(photo) => {
-          onChange({ photo, costume: costume === "none" ? "sueter" : costume });
-          setImg(null);
-        }}
-      />
+      <Sheet open={choosing} onClose={() => setChoosing(false)}>
+        <div className="flex flex-col gap-3 pb-6">
+          <h3 className="text-center font-xmas text-3xl font-bold">Tu foto navideña 📸</h3>
+          <p className="-mt-1 text-center text-sm text-snow/60">Te verás con el disfraz antes de tomarla</p>
+          <button
+            type="button"
+            onClick={() => {
+              setChoosing(false);
+              setStudio("camera");
+            }}
+            className="btn-primary flex items-center gap-3 rounded-2xl px-5 py-4 text-left active:scale-[0.97]"
+          >
+            <span className="text-3xl">🤳</span>
+            <span>
+              <b className="block text-lg">Cámara con disfraz</b>
+              <span className="text-sm opacity-80">Mírate en vivo con el disfraz</span>
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setChoosing(false);
+              fileRef.current?.click();
+            }}
+            className="glass flex items-center gap-3 rounded-2xl px-5 py-4 text-left active:scale-[0.97]"
+          >
+            <span className="text-3xl">🖼️</span>
+            <span>
+              <b className="block text-lg">Desde la galería</b>
+              <span className="text-sm text-snow/60">Acomódala y prueba disfraces</span>
+            </span>
+          </button>
+        </div>
+      </Sheet>
+
+      {studio && (
+        <PhotoStudio
+          start={studio}
+          name={value.name}
+          emoji={value.emoji}
+          costume={value.photo || costume !== "none" ? costume : "sueter"}
+          onClose={() => setStudio(null)}
+          onDone={(photo, c) => {
+            onChange({ photo, costume: c });
+            setStudio(null);
+          }}
+        />
+      )}
     </div>
   );
 }

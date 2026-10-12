@@ -160,14 +160,19 @@ export const COSTUMES: Record<Exclude<CostumeId, "none">, Costume> = {
 
 export const COSTUME_IDS = ["none", ...Object.keys(COSTUMES)] as CostumeId[];
 
+/** Dónde va la cara, en fracciones del lienzo (para poner la cámara o la foto debajo). */
+export const FACE_BOX = { left: (FACE.cx - FACE.r) / 200, top: (FACE.cy - FACE.r) / 200, size: (FACE.r * 2) / 200 };
+
 type Props = {
   costume: Exclude<CostumeId, "none">;
   photo?: string;
   emoji: string;
   className?: string;
+  /** deja la cara transparente para ver la cámara o la foto que está debajo */
+  hole?: boolean;
 };
 
-export default function Character({ costume, photo, emoji, className = "" }: Props) {
+export default function Character({ costume, photo, emoji, className = "", hole = false }: Props) {
   const c = COSTUMES[costume];
   const id = useId().replace(/:/g, "");
   return (
@@ -180,13 +185,19 @@ export default function Character({ costume, photo, emoji, className = "" }: Pro
         <clipPath id={`face${id}`}>
           <circle cx={FACE.cx} cy={FACE.cy} r={FACE.r} />
         </clipPath>
+        <mask id={`hole${id}`}>
+          <rect width="200" height="200" fill="#fff" />
+          <circle cx={FACE.cx} cy={FACE.cy} r={FACE.r} fill="#000" />
+        </mask>
       </defs>
-      <rect width="200" height="200" fill={`url(#bg${id})`} />
-      {[[24, 30], [176, 24], [30, 110], [172, 104], [150, 150], [44, 160]].map(([x, y]) => (
-        <circle key={`${x}-${y}`} cx={x} cy={y} r="2.4" fill="#fff" opacity="0.6" />
-      ))}
-      {c.back}
-      {photo ? (
+      <g mask={hole ? `url(#hole${id})` : undefined}>
+        <rect width="200" height="200" fill={`url(#bg${id})`} />
+        {[[24, 30], [176, 24], [30, 110], [172, 104], [150, 150], [44, 160]].map(([x, y]) => (
+          <circle key={`${x}-${y}`} cx={x} cy={y} r="2.4" fill="#fff" opacity="0.6" />
+        ))}
+        {c.back}
+      </g>
+      {hole ? null : photo ? (
         <>
           <circle cx={FACE.cx} cy={FACE.cy} r={FACE.r} fill={SKIN} />
           <image
