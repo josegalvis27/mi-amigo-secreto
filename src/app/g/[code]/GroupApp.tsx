@@ -178,7 +178,7 @@ function InviteView({ group, onJoin, onLogin }: { group: GroupView; onJoin: () =
         <p className="mt-6 text-snow/70">
           {group.drawn
             ? "🎲 El sorteo ya se hizo"
-            : `${group.members.length} ${group.members.length === 1 ? "persona ya está" : "personas ya están"} adentro. ¡Falta tú!`}
+            : `${group.members.length} ${group.members.length === 1 ? "persona ya está" : "personas ya están"} adentro. ¡Faltas tú!`}
         </p>
       </div>
       <div className="safe-bottom flex flex-col gap-2 px-5">
@@ -347,7 +347,7 @@ function GroupTab({ group, me, act, goTo }: { group: GroupView; me: Me; act: Act
               </Link>{" "}
               · Hola, {me.name} 👋
             </p>
-            <h1 className="mt-0.5 truncate font-xmas text-[2rem] font-bold leading-tight">
+            <h1 className="mt-0.5 line-clamp-2 text-balance break-words font-xmas text-[2rem] font-bold leading-[1.05]">
               {group.emoji} {group.name}
             </h1>
           </div>
@@ -355,7 +355,7 @@ function GroupTab({ group, me, act, goTo }: { group: GroupView; me: Me; act: Act
             Salir
           </button>
         </div>
-        <div className="-mx-5 mt-2 flex gap-2 overflow-x-auto whitespace-nowrap px-5 text-sm [scrollbar-width:none]">
+        <div className="mt-2 flex flex-wrap gap-2 whitespace-nowrap text-sm">
           <span className="rounded-full bg-gold/15 px-3 py-1 text-gold">💵 {group.budget === null ? "Sin límite" : `Hasta $${group.budget}`}</span>
           <span className="rounded-full bg-white/8 px-3 py-1">📅 {fmtDate(group.date)}</span>
           <button onClick={() => setInviting(true)} className="rounded-full bg-white/8 px-3 py-1 font-mono tracking-wider">

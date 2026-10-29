@@ -55,7 +55,7 @@ export default function CrearForm() {
 
   if (step === 3 && code) {
     return (
-      <main className="mx-auto flex h-dvh w-full max-w-md flex-col items-center justify-center px-5 text-center">
+      <main className="safe-bottom mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center px-5 pt-8 text-center">
         <motion.div initial={{ scale: 0, rotate: -180 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", damping: 10 }} className="text-7xl">
           {emoji}
         </motion.div>

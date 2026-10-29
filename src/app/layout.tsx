@@ -11,10 +11,20 @@ const xmas = Mountains_of_Christmas({
 });
 const hand = Caveat({ variable: "--font-hand", subsets: ["latin"] });
 
+const SITE = process.env.VERCEL_PROJECT_PRODUCTION_URL
+  ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  : "http://localhost:3000";
+const DESCRIPTION = "Arma el amigo secreto navideño con tus amigos, la familia o la oficina: sorteo, carta de deseos y fotos con disfraz. Gratis y sin registro.";
+
 export const metadata: Metadata = {
-  title: "Mi Amigo Secreto 🎁",
-  description: "Arma tu amigo secreto navideño con tus amigos: sorteo, lista de deseos y mucha emoción.",
+  metadataBase: new URL(SITE),
+  title: { default: "Mi Amigo Secreto 🎁", template: "%s · Mi Amigo Secreto" },
+  description: DESCRIPTION,
+  applicationName: "Mi Amigo Secreto",
+  openGraph: { type: "website", locale: "es_419", siteName: "Mi Amigo Secreto", title: "Mi Amigo Secreto 🎁", description: DESCRIPTION },
+  twitter: { card: "summary_large_image" },
   appleWebApp: { capable: true, title: "Mi Amigo Secreto", statusBarStyle: "black-translucent" },
+  formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = {

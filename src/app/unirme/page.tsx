@@ -8,7 +8,9 @@ import { GiftBox, GiftLid } from "@/components/Gift";
 export default function UnirmePage() {
   const router = useRouter();
   const [code, setCode] = useState("");
-  const clean = code.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+  // acepta el código o el link completo que llegó por WhatsApp
+  const fromLink = code.match(/\/g\/([a-z0-9]{6})/i)?.[1];
+  const clean = (fromLink ?? code).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col">
@@ -25,7 +27,7 @@ export default function UnirmePage() {
           <GiftBox size={90} color="#0e4d3a" />
         </div>
         <h1 className="mt-8 font-xmas text-4xl font-bold">¿Cuál es el código?</h1>
-        <p className="mt-1 text-snow/60">Te lo pasó quien organizó el grupo</p>
+        <p className="mt-1 text-snow/60">Te lo pasó quien organizó el grupo. También puedes pegar el link.</p>
         <input
           value={clean}
           onChange={(e) => setCode(e.target.value)}
